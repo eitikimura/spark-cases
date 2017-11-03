@@ -10,7 +10,7 @@ import org.apache.spark.sql.streaming.{OutputMode, Trigger}
   * J.P. Eiti Kimura (eiti.kimura@movile.com)
   * 01/11/2017.
   */
-object StreamingFile {
+object SparkSQL {
 
   val log: Logger = LoggerFactory.getLogger(StreamingFile.getClass)
 
@@ -31,7 +31,7 @@ object StreamingFile {
 
     //1. == DATA INPUT ==
     // read data from datasource, in this particular case it is a directory
-    val reader = spark.readStream
+    val reader = spark.read
       .format("csv")
       .option("header", true)
       .option("delimiter", ";")
@@ -39,6 +39,7 @@ object StreamingFile {
       .schema(SchemaDefinition.csvSchema)
       .load(DIR + "/*")
 
+    reader.show()
 
     //2. == DATA PROCESSING ==
     reader.createOrReplaceTempView("user_records")
@@ -48,19 +49,9 @@ object StreamingFile {
         SELECT carrier, marital_status, COUNT(1) as num_users
         FROM user_records
         GROUP BY carrier, marital_status
+        ORDER BY carrier, marital_status
       """)
 
-
-    //3. == DATA OUTPUT ==
-    val consoleStream = transformation.
-      writeStream.
-      option("truncate", false).
-      outputMode(OutputMode.Complete).
-      trigger(Trigger.ProcessingTime("2 seconds")).
-      format("console").
-      start()
-
-
-    consoleStream.awaitTermination()
+    transformation.show()
   }
 }
